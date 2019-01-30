@@ -1,9 +1,11 @@
 ## There I wrote the AWS CloudFormation template to create the VPC as show in vpc_diagram.png file.
 
 
-We have to create 2 key-pairs for our JumpServer and Private Server and import them to AWS \n
-We can do it via aws cli : \n
-Generate ssh keys via ssh-keygen \n
+We have to create 2 key-pairs for our JumpServer and Private Server and import them to AWS
+
+We can do it via aws cli :
+
+Generate ssh keys via ssh-keygen
  
  ` ssh-keygen -C "jumpserver_key" -f jumpserver_key `
  
