@@ -207,6 +207,61 @@ Resources:
     Properties:
       SubnetId: !Ref PublicSubnetB
       RouteTableId: !Ref PublicRouteTableB
+  
+  # creating security group for SSH
+  AllowSSHSecGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref VPC
+      GroupName: AllowSSH
+      GroupDescription: AllowSSH
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 22
+        ToPort: 22
+        CidrIp: 0.0.0.0/0
+        
+  JumpServer:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-c86c3f23 # RHEL 7.5 free tier
+      InstanceType: t2.micro
+      Tags:
+      - Key: Name
+        Value: JumpServer
+      KeyName: jumpserver_key
+      SubnetId: !Ref PublicSubnetA
+      SecurityGroupIds: 
+        - !Ref AllowSSHSecGroup
+  
+  PrivateServer:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-c86c3f23 # RHEL 7.5 free tier
+      InstanceType: t2.micro
+      Tags:
+      - Key: Name
+        Value: PrivateServer
+      KeyName: privateserver_key
+      SubnetId: !Ref PrivateSubnetA
+      SecurityGroupIds: 
+        - !Ref AllowSSHSecGroup
+
+
+# We have to create 2 key-pairs for our JumpServer and Private Server and import them to AWS
+# We can do it via aws cli :
+
+# Generate ssh keys via ssh-keygen
+# ssh-keygen -C "jumpserver_key" -f jumpserver_key
+# ssh-keygen -C "privateserver_key" -f privateserver_key
+
+# Then import them via aws cli
+# aws ec2 import-key-pair --key-name jumpserver_key --public-key-material "$(cat jumpserver_key.pub)"
+# aws ec2 import-key-pair --key-name privateserver_key --public-key-material "$(cat .\privateserver_key.pub)"
+
+
+
+   
 
                 
    
