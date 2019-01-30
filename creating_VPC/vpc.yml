@@ -1,0 +1,254 @@
+AWSTemplateFormatVersion: 2010-09-09
+Resources:
+  # creating the VPC
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 192.168.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      InstanceTenancy: default
+      Tags:
+      - Key: Name
+        Value: "MY_VPC"
+  
+  # creating the Internet Gateway
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+      - Key: Name
+        Value: "IGW"
+    
+  
+  # attaching the VPC to Internet Gateway
+  VPCGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+  
+  # creating the public subnets
+  PublicSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: eu-central-1a
+      VpcId: !Ref VPC
+      CidrBlock: 192.168.1.0/24
+      MapPublicIpOnLaunch: true
+      Tags:
+      - Key: Name
+        Value: "public_subnet_a"
+  
+  PublicSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: eu-central-1b
+      VpcId: !Ref VPC
+      CidrBlock: 192.168.2.0/24
+      MapPublicIpOnLaunch: true
+      Tags:
+      - Key: Name
+        Value: "public_subnet_b"
+  
+  # creating the private subnets
+  PrivateSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: eu-central-1a
+      VpcId: !Ref VPC
+      CidrBlock: 192.168.3.0/24
+      MapPublicIpOnLaunch: false
+      Tags:
+      - Key: Name
+        Value: "private_subnet_a"
+  
+  PrivateSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: eu-central-1b
+      VpcId: !Ref VPC
+      CidrBlock: 192.168.4.0/24
+      MapPublicIpOnLaunch: false
+      Tags:
+      - Key: Name
+        Value: "private_subnet_b"
+  
+  # creating the database subnets
+  DatabaseSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: eu-central-1a
+      VpcId: !Ref VPC
+      CidrBlock: 192.168.5.0/24
+      MapPublicIpOnLaunch: false
+      Tags:
+      - Key: Name
+        Value: "db_subnet_a"
+  
+  DatabaseSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: eu-central-1b
+      VpcId: !Ref VPC
+      CidrBlock: 192.168.6.0/24
+      MapPublicIpOnLaunch: false
+      Tags:
+      - Key: Name
+        Value: "db_subnet_b"
+        
+  # creating Elastic IP Addresses
+  ElasticIPAddressA:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: VPC 
+  ElasticIPAddressB:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: VPC      
+  
+  # creating the NAT Gateways
+  NatGatewayA:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt ElasticIPAddressA.AllocationId
+      SubnetId: !Ref PublicSubnetA
+      Tags:
+      - Key: Name
+        Value: "nat_gateway_a"
+  
+  NatGatewayB:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt ElasticIPAddressB.AllocationId
+      SubnetId: !Ref PublicSubnetB
+      Tags:
+      - Key: Name
+        Value: "nat_gateway_b"
+
+  
+  # creating the Route Tables and routing rules
+  PrivateRouteTableA:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+      - Key: Name
+        Value: "private_route_table_a"
+  PrivateRouteA:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTableA
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGatewayA
+  
+  PrivateRouteTableB:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+      - Key: Name
+        Value: "private_route_table_b"
+  PrivateRouteB:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTableB
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGatewayB
+  
+  PublicRouteTableA:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+      - Key: Name
+        Value: "public_route_table_a"
+  PublicRouteA:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PublicRouteTableA
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+   
+  PublicRouteTableB:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+      - Key: Name
+        Value: "public_route_table_b"
+  PublicRouteB:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PublicRouteTableB
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+    
+  
+  # attaching the route tables to subnets
+  PrivateSubnetRouteTableAssA:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnetA
+      RouteTableId: !Ref PrivateRouteTableA
+  PrivateSubnetRouteTableAssB:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnetB
+      RouteTableId: !Ref PrivateRouteTableB
+  
+  PubLicSubnetRouteTableAssA:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnetA
+      RouteTableId: !Ref PublicRouteTableA
+  PublicSubnetRouteTableAssB:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnetB
+      RouteTableId: !Ref PublicRouteTableB
+
+  # creating security group for allowing ssh traffic
+  AllowSSHSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Rule for allowing ssh connect
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 22
+        ToPort: 22
+        CidrIp: 0.0.0.0/0
+ 
+  # creating EC2 instance (jump server) on PublicSubnetA for testing
+  JumpServer:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-c86c3f23 # RHEL 7.5 free tier
+      InstanceType: t2.micro
+      SubnetId: !Ref PublicSubnetA
+      SecurityGroupIds:
+        - !Ref AllowSSHSecurityGroup
+      Tags:
+      - Key: Name
+        Value: jump_server
+  
+  # creting EC2 instance in PrivateSubnetA
+  AppServer:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-c86c3f23 # RHEL 7.5 free tier
+      InstanceType: t2.micro
+      SubnetId: !Ref PrivateSubnetA
+      SecurityGroupIds:
+        - !Ref AllowSSHSecurityGroup
+      Tags:
+      - Key: Name
+        Value: private_server
+
+
+      
+                
+   
+   
+
