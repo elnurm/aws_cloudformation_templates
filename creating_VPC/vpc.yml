@@ -208,46 +208,6 @@ Resources:
       SubnetId: !Ref PublicSubnetB
       RouteTableId: !Ref PublicRouteTableB
 
-  # creating security group for allowing ssh traffic
-  AllowSSHSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupDescription: Rule for allowing ssh connect
-      VpcId: !Ref VPC
-      SecurityGroupIngress:
-      - IpProtocol: tcp
-        FromPort: 22
-        ToPort: 22
-        CidrIp: 0.0.0.0/0
- 
-  # creating EC2 instance (jump server) on PublicSubnetA for testing
-  JumpServer:
-    Type: AWS::EC2::Instance
-    Properties:
-      ImageId: ami-c86c3f23 # RHEL 7.5 free tier
-      InstanceType: t2.micro
-      SubnetId: !Ref PublicSubnetA
-      SecurityGroupIds:
-        - !Ref AllowSSHSecurityGroup
-      Tags:
-      - Key: Name
-        Value: jump_server
-  
-  # creting EC2 instance in PrivateSubnetA
-  AppServer:
-    Type: AWS::EC2::Instance
-    Properties:
-      ImageId: ami-c86c3f23 # RHEL 7.5 free tier
-      InstanceType: t2.micro
-      SubnetId: !Ref PrivateSubnetA
-      SecurityGroupIds:
-        - !Ref AllowSSHSecurityGroup
-      Tags:
-      - Key: Name
-        Value: private_server
-
-
-      
                 
    
    
