@@ -11,7 +11,7 @@ Generate ssh keys via ssh-keygen
  
  ` ssh-keygen -C "privateserver_key" -f privateserver_key `
 
-Then import them via aws cli \n
+Then import them via aws cli
  
  ` aws ec2 import-key-pair --key-name jumpserver_key --public-key-material "$(cat jumpserver_key.pub)" ` 
  
