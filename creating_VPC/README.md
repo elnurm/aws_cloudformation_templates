@@ -1,4 +1,4 @@
-There I wrote the AWS CloudFormation template to create the VPC as show in vpc_diagram.png file.
+# There I wrote the AWS CloudFormation template to create the VPC as show in vpc_diagram.png file.
 
 
 We have to create 2 key-pairs for our JumpServer and Private Server and import them to AWS
