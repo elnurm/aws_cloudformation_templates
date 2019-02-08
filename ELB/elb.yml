@@ -1,0 +1,304 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Resources:
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 192.168.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      InstanceTenancy: default
+      Tags:
+      - Key: Name
+        Value: "MY_VPC"
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+      - Key: Name
+        Value: "IGW"
+    
+  
+  # attaching the VPC to Internet Gateway
+  VPCGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  PublicSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: eu-central-1a
+      VpcId: !Ref VPC
+      CidrBlock: 192.168.1.0/24
+      MapPublicIpOnLaunch: true
+      Tags:
+      - Key: Name
+        Value: "public_subnet_a"
+  PublicSubnetB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: eu-central-1b
+      VpcId: !Ref VPC
+      CidrBlock: 192.168.2.0/24
+      MapPublicIpOnLaunch: true
+      Tags:
+      - Key: Name
+        Value: "public_subnet_b"
+
+  DatabaseSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: eu-central-1a
+      VpcId: !Ref VPC
+      CidrBlock: 192.168.5.0/24
+      MapPublicIpOnLaunch: false
+      Tags:
+      - Key: Name
+        Value: "db_subnet_a"
+
+  PublicRouteTableA:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+      - Key: Name
+        Value: "public_route_table_a"
+  PublicRouteA:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PublicRouteTableA
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+      
+  PublicRouteTableB:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+      - Key: Name
+        Value: "public_route_table_b"
+  PublicRouteB:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PublicRouteTableB
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+      
+  PubLicSubnetRouteTableAssA:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnetA
+      RouteTableId: !Ref PublicRouteTableA
+
+  PubLicSubnetRouteTableAssB:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnetB
+      RouteTableId: !Ref PublicRouteTableB
+
+  AllowSSHSecGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref VPC
+      GroupName: AllowSSH
+      GroupDescription: AllowSSH
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 22
+        ToPort: 22
+        CidrIp: 0.0.0.0/0
+  
+  Allow3306SecGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref VPC
+      GroupName: Allow3306
+      GroupDescription: Allow3306
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 3306
+        ToPort: 3306
+        CidrIp: 192.168.1.0/24
+  
+  AllowNFSSecGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref VPC
+      GroupName: AllowNFS
+      GroupDescription: AllowNFS
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 2049
+        ToPort: 2049
+        CidrIp: 192.168.1.0/24
+  
+  AllowFlaskSecGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref VPC
+      GroupName: AllowFlaskPort
+      GroupDescription: AllowFlaskPort
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 5000
+        ToPort: 5000
+        CidrIp: 0.0.0.0/0
+  
+  AllowHTTPSecGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref VPC
+      GroupName: AllowHTTP
+      GroupDescription: AllowHTTP
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 80
+        ToPort: 80
+        CidrIp: 0.0.0.0/0
+        
+  
+  # creating our EC2 Instances
+  FlaskServer1:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-c86c3f23 # RHEL 7.5 free tier
+      InstanceType: t2.micro
+      Tags:
+      - Key: Name
+        Value: flask_app_server_1
+      KeyName: flaskapp
+      SubnetId: !Ref PublicSubnetA
+      UserData: 
+        Fn::Base64: |
+          #!/bin/bash
+          
+          sudo yum -y update &> /dev/null
+          sudo yum -y install vim nfs-utils wget &> /dev/null
+          sudo wget http://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm &> /dev/null 
+          sudo rpm -ivh epel-release-latest-7.noarch.rpm
+          sudo wget http://repo.mysql.com/mysql-community-release-el7-5.noarch.rpm &> /dev/null
+          sudo yum -y install htop python-pip  &> /dev/null
+          sudo rpm -ivh mysql-community-release-el7-5.noarch.rpm
+          sudo yum -y install mysql-server
+          sudo pip install awscli &> /dev/null
+          sudo yum -y install java-1.8.0-openjdk &> /dev/null
+          sudo yum install -y yum-utils device-mapper-persistent-data lvm2 &> /dev/null
+          sudo yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+          sudo yum install -y http://mirror.centos.org/centos/7/extras/x86_64/Packages/container-selinux-2.74-1.el7.noarch.rpm
+          sudo yum -y install docker-ce docker-ce-cli containerd.io
+          sudo yum -y install http://opensource.wandisco.com/centos/7/git/x86_64/wandisco-git-release-7-2.noarch.rpm
+          sudo yum -y install git
+          sudo systemctl start docker
+          sudo systemctl enable docker
+          sudo systemctl start mysql
+          sudo systemctl enable mysql
+      SecurityGroupIds:
+        - !Ref AllowSSHSecGroup
+        - !Ref AllowNFSSecGroup
+        - !Ref AllowFlaskSecGroup
+  
+  FlaskServer2:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-c86c3f23 # RHEL 7.5 free tier
+      InstanceType: t2.micro
+      Tags:
+      - Key: Name
+        Value: flask_app_server_2
+      KeyName: flaskapp
+      SubnetId: !Ref PublicSubnetA
+      UserData: 
+        Fn::Base64: |
+          #!/bin/bash
+          
+          sudo yum -y update &> /dev/null
+          sudo yum -y install vim nfs-utils wget &> /dev/null
+          sudo wget http://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm &> /dev/null 
+          sudo rpm -ivh epel-release-latest-7.noarch.rpm
+          sudo wget http://repo.mysql.com/mysql-community-release-el7-5.noarch.rpm &> /dev/null
+          sudo yum -y install htop python-pip  &> /dev/null
+          sudo rpm -ivh mysql-community-release-el7-5.noarch.rpm
+          sudo yum -y install mysql-server
+          sudo pip install awscli &> /dev/null
+          sudo yum -y install java-1.8.0-openjdk &> /dev/null
+          sudo yum install -y yum-utils device-mapper-persistent-data lvm2 &> /dev/null
+          sudo yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+          sudo yum install -y http://mirror.centos.org/centos/7/extras/x86_64/Packages/container-selinux-2.74-1.el7.noarch.rpm
+          sudo yum -y install docker-ce docker-ce-cli containerd.io
+          sudo yum -y install http://opensource.wandisco.com/centos/7/git/x86_64/wandisco-git-release-7-2.noarch.rpm
+          sudo yum -y install git
+          sudo systemctl start docker
+          sudo systemctl enable docker
+          sudo systemctl start mysql
+          sudo systemctl enable mysql
+      SecurityGroupIds:
+        - !Ref AllowSSHSecGroup
+        - !Ref AllowNFSSecGroup
+        - !Ref AllowFlaskSecGroup
+          
+          
+  # creating ELB for flask servers
+  FlaskELB:
+    Type: AWS::ElasticLoadBalancing::LoadBalancer
+    Properties:
+      Subnets: 
+        - !Ref PublicSubnetA
+      Instances:
+      - Ref: FlaskServer1
+      - Ref: FlaskServer2
+      Listeners:
+      - LoadBalancerPort: '80'
+        InstancePort: '5000'
+        Protocol: HTTP
+      HealthCheck:
+        Target: "HTTP:5000/flaskapp/app.py"
+        HealthyThreshold: '3'
+        UnhealthyThreshold: '5'
+        Interval: '30'
+        Timeout: '5'
+  
+  # creating AWS EFS and mounting it
+  EFS:
+    Type: AWS::EFS::FileSystem
+    Properties:
+      FileSystemTags:
+        - Key: Name
+          Value: NFS
+  MountTarget:
+    Type: AWS::EFS::MountTarget
+    Properties:
+      FileSystemId: !Ref EFS
+      SubnetId: !Ref PublicSubnetA
+      SecurityGroups:
+        - !Ref AllowNFSSecGroup
+  
+  # creating subnet group for db( 
+  DBSubnetGroupA:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: "DBSubnetGroup"
+      DBSubnetGroupName: "DBSubnetGroup"
+      SubnetIds:
+        - !Ref PublicSubnetA
+        - !Ref PublicSubnetB
+      
+  # creating mysql db 
+  MySql:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBName: "mysqldb"
+      DBSubnetGroupName: !Ref DBSubnetGroupA
+      VPCSecurityGroups:
+        - !Ref Allow3306SecGroup
+      AllocatedStorage: "20"
+      DBInstanceClass: db.t2.micro
+      Engine: "MySQL"
+      EngineVersion: "5.7.23"
+      MasterUsername: "admin"
+      MasterUserPassword: "password"
+      Tags:
+        - Key: Name
+Value: "mysql_db"
