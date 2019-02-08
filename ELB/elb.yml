@@ -254,7 +254,7 @@ Resources:
         InstancePort: '5000'
         Protocol: HTTP
       HealthCheck:
-        Target: "HTTP:5000/flaskapp/app.py"
+        Target: "HTTP:5000/"
         HealthyThreshold: '3'
         UnhealthyThreshold: '5'
         Interval: '30'
