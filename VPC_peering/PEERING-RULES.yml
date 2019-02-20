@@ -1,0 +1,48 @@
+AWSTemplateFormatVersion: 2010-09-09
+Conditions:
+  IfUSWestRegion: !Equals [ !Ref 'AWS::Region', 'us-west-2' ]
+  IfEUCentralRegion: !Equals [ !Ref 'AWS::Region', 'eu-central-1' ]
+  IfAPNorthEastRegion: !Equals [ !Ref 'AWS::Region', 'ap-northeast-1' ]
+  
+Resources:
+  USAtoEUROPEPeeringConnection:
+    Type: AWS::EC2::VPCPeeringConnection
+    Condition: IfUSWestRegion
+    Properties:
+      VpcId:
+        Fn::ImportValue: VPCUsaId
+      PeerRegion: eu-central-1
+      # manually set the VPCEuropeId ( you can get id via command - aws ec2 describe-vpcs --region eu-central-1)
+      PeerVpcId: "vpc-0960096ea0dff660b"
+      
+  
+  # Creating VPC Peering rule
+  USAtoEUROPEPeeringRule:
+    Type: AWS::EC2::Route
+    Condition: IfUSWestRegion
+    Properties:
+      DestinationCidrBlock: 10.0.0.0/16
+      RouteTableId: 
+        Fn::ImportValue: USARouteTableId
+      VpcPeeringConnectionId: !Ref USAtoEUROPEPeeringConnection  
+
+  # Peering Configuration
+  EUROPEtoASIAPeeringConnection:
+    Type: AWS::EC2::VPCPeeringConnection
+    Condition: IfEUCentralRegion
+    Properties:
+      VpcId: 
+        Fn::ImportValue: VPCEuropeId
+      PeerRegion: ap-northeast-1
+      # manually set the VPCAsiaId ( you can get id via command aws ec2 describe-vpcs --region ap-northeast-1)
+      PeerVpcId: "vpc-0fb3df1d19bc57f17"
+  
+
+  EUROPEtoASIAPeeringRule:
+    Type: AWS::EC2::Route
+    Condition: IfEUCentralRegion
+    Properties:
+      DestinationCidrBlock: 192.168.0.0/16
+      RouteTableId: 
+        Fn::ImportValue: EUROPERouteTableId
+      VpcPeeringConnectionId: !Ref EUROPEtoASIAPeeringConnection

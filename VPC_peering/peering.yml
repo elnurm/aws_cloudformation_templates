@@ -1,0 +1,236 @@
+AWSTemplateFormatVersion: 2010-09-09
+Mappings:
+  AWSRegionMap:
+    us-west-2:
+      Region: us-west-2a
+    eu-central-1:
+      Region: eu-central-1a
+    ap-northeast-1:
+      Region: ap-northeast-1a
+
+Parameters:
+  USWestRegion:
+    Type: String
+    Default: us-west-2a
+    Description: us-west-2a
+  EUCentralRegion:
+    Type: String
+    Default: eu-central-1a
+    Description: eu-central-1a
+  APNorthEastRegion:
+    Type: String
+    Default: ap-northeast-1a
+    Description: ap-northeast-1a
+
+Conditions:
+  IfUSWestRegion: !Equals [ !Ref 'AWS::Region', 'us-west-2' ]
+  IfEUCentralRegion: !Equals [ !Ref 'AWS::Region', 'eu-central-1' ]
+  IfAPNorthEastRegion: !Equals [ !Ref 'AWS::Region', 'ap-northeast-1' ]
+  
+
+Resources:
+  ############################# VPCUSA #############################
+  VPCUSA:
+    Type: AWS::EC2::VPC
+    Condition: IfUSWestRegion
+    Properties:
+      CidrBlock: 172.16.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      InstanceTenancy: default
+      Tags:
+      - Key: Name
+        Value: VPCUSA
+  
+  IGWUSA:
+    Type: AWS::EC2::InternetGateway
+    Condition: IfUSWestRegion
+    Properties:
+      Tags:
+      - Key: Name
+        Value: "IGWUSA"
+
+  VPCUSAGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Condition: IfUSWestRegion
+    Properties:
+      VpcId: !Ref VPCUSA
+      InternetGatewayId: !Ref IGWUSA
+
+  PublicSubnetUSA:
+    Type: AWS::EC2::Subnet
+    Condition: IfUSWestRegion
+    Properties:
+      AvailabilityZone: !FindInMap
+        - AWSRegionMap
+        - !Ref 'AWS::Region'
+        - Region        
+      VpcId: !Ref VPCUSA
+      CidrBlock: 172.16.100.0/24
+      MapPublicIpOnLaunch: true
+      Tags:
+      - Key: Name
+        Value: "USA-SUBNET"
+
+  USARouteTable:
+    Type: AWS::EC2::RouteTable
+    Condition: IfUSWestRegion
+    Properties:
+      VpcId: !Ref VPCUSA
+
+  USAtoEUROPESubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Condition: IfUSWestRegion
+    Properties:
+      SubnetId: !Ref PublicSubnetUSA
+      RouteTableId: !Ref USARouteTable
+
+  ############################# VPCEUROPE #############################
+  VPCEUROPE:
+    Type: AWS::EC2::VPC
+    Condition: IfEUCentralRegion
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      InstanceTenancy: default
+      Tags:
+      - Key: Name
+        Value: VPCEUROPE
+  
+  IGWEUROPE:
+    Type: AWS::EC2::InternetGateway
+    Condition: IfEUCentralRegion
+    Properties:
+      Tags:
+      - Key: Name
+        Value: IGWEUROPE
+  
+  VPCEUROPEGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Condition: IfEUCentralRegion
+    Properties:
+      VpcId: !Ref VPCEUROPE
+      InternetGatewayId: !Ref IGWEUROPE
+  
+  PublicSubnetEUROPE:
+    Type: AWS::EC2::Subnet
+    Condition: IfEUCentralRegion
+    Properties:
+      AvailabilityZone: !FindInMap
+      - AWSRegionMap
+      - !Ref 'AWS::Region'
+      - Region
+      VpcId: !Ref VPCEUROPE
+      CidrBlock: 10.0.100.0/24
+      MapPublicIpOnLaunch: true
+      Tags:
+      - Key: Name
+        Value: "EUROPE-SUBNET"
+  
+  EUROPERouteTable:
+    Type: AWS::EC2::RouteTable
+    Condition: IfEUCentralRegion
+    Properties:
+      VpcId: !Ref VPCEUROPE
+  
+  EUROPEtoASIASubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Condition: IfEUCentralRegion
+    Properties:
+      SubnetId: !Ref PublicSubnetEUROPE
+      RouteTableId: !Ref EUROPERouteTable
+      
+############################# VPCASIA #############################
+  VPCASIA:
+    Type: AWS::EC2::VPC
+    Condition: IfAPNorthEastRegion
+    Properties:
+      CidrBlock: 192.168.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      InstanceTenancy: default
+      Tags:
+      - Key: Name
+        Value: VPCASIA
+  
+  IGWASIA:
+    Type: AWS::EC2::InternetGateway
+    Condition: IfAPNorthEastRegion
+    Properties:
+      Tags:
+      - Key: Name
+        Value: IGWASIA
+  
+  VPCASIAGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Condition: IfAPNorthEastRegion
+    Properties:
+      VpcId: !Ref VPCASIA
+      InternetGatewayId: !Ref IGWASIA
+  
+  PublicSubnetASIA:
+    Type: AWS::EC2::Subnet
+    Condition: IfAPNorthEastRegion
+    Properties:
+      AvailabilityZone: !FindInMap
+      - AWSRegionMap
+      - !Ref 'AWS::Region'
+      - Region
+      VpcId: !Ref VPCASIA
+      CidrBlock: 192.168.100.0/24
+      MapPublicIpOnLaunch: true
+      Tags:
+      - Key: Name
+        Value: "ASIA-SUBNET"
+  
+  ASIARouteTable:
+    Type: AWS::EC2::RouteTable
+    Condition: IfAPNorthEastRegion
+    Properties:
+      VpcId: !Ref VPCASIA
+  
+  ASIAtoEUROPESubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Condition: IfAPNorthEastRegion
+    Properties:
+      SubnetId: !Ref PublicSubnetASIA
+      RouteTableId: !Ref ASIARouteTable
+
+Outputs:
+  VPCUsaId:
+    Description: VPCUsaId
+    Condition: IfUSWestRegion
+    Value: !Ref VPCUSA
+    Export:
+      Name: 
+        Fn::Sub: VPCUsaId
+  VPCEuropeId:
+    Description: VPCEuropeId
+    Condition: IfEUCentralRegion
+    Value: !Ref VPCEUROPE
+    Export:
+      Name: 
+        Fn::Sub: VPCEuropeId
+  VPCAsiaId:
+    Description: VPCAsiaId
+    Condition: IfAPNorthEastRegion
+    Value: !Ref VPCASIA
+    Export:
+      Name: 
+        Fn::Sub: VPCAsiaId
+  USARouteTableId:
+    Description: USARouteTableId
+    Condition: IfUSWestRegion
+    Value: !Ref USARouteTable
+    Export:
+      Name: 
+        Fn::Sub: USARouteTableId
+  EUROPERouteTableId:
+    Description: EUROPERouteTableId
+    Condition: IfEUCentralRegion
+    Value: !Ref EUROPERouteTable
+    Export:
+      Name:
+        Fn::Sub: EUROPERouteTableId
+  

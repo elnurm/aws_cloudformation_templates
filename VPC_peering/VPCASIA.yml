@@ -1,0 +1,59 @@
+AWSTemplateFormatVersion: 2010-09-09
+Mappings:
+  AWSRegionMap:
+    us-west-2:
+      Region: us-west-2a
+    eu-central-1:
+      Region: eu-central-1a
+    ap-northeast-1:
+      Region: ap-northeast-1a
+
+Resources:
+  VPCASIA:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 192.168.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      InstanceTenancy: default
+      Tags:
+      - Key: Name
+        Value: VPCASIA
+  
+  IGWASIA:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+      - Key: Name
+        Value: IGWASIA
+  
+  VPCASIAGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPCASIA
+      InternetGatewayId: !Ref IGWASIA
+  
+  PublicSubnetASIA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !FindInMap
+      - AWSRegionMap
+      - !Ref 'AWS::Region'
+      - Region
+      VpcId: !Ref VPCASIA
+      CidrBlock: 192.168.100.0/24
+      MapPublicIpOnLaunch: true
+      Tags:
+      - Key: Name
+        Value: "ASIA-SUBNET"
+  
+  ASIARouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPCASIA
+  
+  ASIAtoEUROPESubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnetASIA
+      RouteTableId: !Ref ASIARouteTable
