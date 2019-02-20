@@ -17,7 +17,7 @@ You can do this with below commands:
 
 ### Creating stack set
 First We have to create stack set  `peering.yml` . I chose 3 regions for testing purposes.
-![Screenshot](regions.png)
+![alt text](https://github.com/elnurm/aws_cloudformation_templates/blob/master/VPC_peering/regions.PNG)
 After that we have to create second stack set `PEERING-RULES.yml` with the same regions.
 
 
