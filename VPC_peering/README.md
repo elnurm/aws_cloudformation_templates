@@ -3,14 +3,16 @@
 ## Getting Started
 Here We create VPC Peering as shown on the diagram via cloudformation stack set 
 
+![alt text](https://github.com/elnurm/aws_cloudformation_templates/blob/master/VPC_peering/diagram.PNG)
+
 ### Prerequisites
 For cloudformation stack sets working properly , first of all you have to execute `AWSCloudFormationStackSetAdministrationRole.yml` and `AWSCloudFormationStackSetExecutionRole.yml` for creating proper IAM roles
 You can do this with below commands:
 
-aws cloudformation create-stack --stack-name CFStackSetAdministrationRole --template-body file://AWSCloudFormationStackSetAdministrationRole.yml
+`aws cloudformation create-stack --stack-name CFStackSetAdministrationRole --template-body file://AWSCloudFormationStackSetAdministrationRole.yml`
 
 
-aws cloudformation create-stack --stack-name CFStackSetExecutionRole --template-body file://AWSCloudFormationStackSetExecutionRole.yml
+`aws cloudformation create-stack --stack-name CFStackSetExecutionRole --template-body file://AWSCloudFormationStackSetExecutionRole.yml`
 
 
 ### Creating stack set
